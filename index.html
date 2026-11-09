@@ -305,11 +305,11 @@
       SPONSOR_HANDLE: "@itoen",
       SPONSOR_URL: "https://www.instagram.com/itoen/",
 
-      // Optional Make.com / Google Apps Script webhook. Each survey response is POSTed as a
-      // JSON string (Content-Type text/plain so no CORS preflight is needed).
-      // Apps Script: JSON.parse(e.postData.contents). Make.com: add a "Parse JSON" module.
+      // Google Apps Script / Make.com webhook. Each survey response is POSTed as a JSON string
+      // (Content-Type text/plain so no CORS preflight is needed).
+      // Apps Script: const data = JSON.parse(e.postData.contents);
       // Leave blank to store responses only on this device (export via the hidden admin panel).
-      WEBHOOK_URL: "",
+      WEBHOOK_URL: "https://script.google.com/macros/s/AKfycby5LjSmNJx8GadrsSTzMJsgaSU9ra3aRn_isF3emlsfg3uKy6fSEdn6bNli6pX0W-bQ1A/exec",
 
       // Seconds the Unlock button waits after the Instagram button is tapped.
       UNLOCK_DELAY_SECONDS: 3
@@ -410,15 +410,28 @@
       $("responseCount").textContent = list.length;
     }
 
-    function sendWebhook(payload) {
+    async function submitSurveyToSheet(formData) {
       if (!CONFIG.WEBHOOK_URL) return;
-      fetch(CONFIG.WEBHOOK_URL, {
-        method: "POST",
-        mode: "no-cors",
-        keepalive: true,
-        headers: { "Content-Type": "text/plain;charset=UTF-8" },
-        body: JSON.stringify(payload)
-      }).catch(() => {});
+      try {
+        await fetch(CONFIG.WEBHOOK_URL, {
+          method: "POST",
+          mode: "no-cors",
+          keepalive: true,
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            timestamp: formData.timestamp,
+            knew_sponsor: formData.knew_sponsor,
+            favorite_booth: formData.favorite_booth,
+            // CamelCase aliases for common Apps Script / sheet column names
+            favoriteBooth: formData.favorite_booth,
+            sponsorRating: formData.knew_sponsor,
+            device: formData.device,
+            user_agent: formData.user_agent
+          })
+        });
+      } catch (err) {
+        console.error("Webhook submission error:", err);
+      }
     }
 
     let lastResponseId = null;
@@ -478,7 +491,8 @@
       lastResponseId = entry.id;
       saveResponses(getResponses().concat(entry));
       store.set(KEYS.surveyed, "true");
-      sendWebhook(entry);
+      // Non-blocking: unlock Step 2 even if the sheet webhook is slow or offline.
+      submitSurveyToSheet(entry);
       showStep(2);
     });
 
