@@ -182,13 +182,13 @@
           </div>
 
           <div id="igHandleField">
-            <label for="igHandle" class="mb-2 block text-sm font-semibold">
+            <label for="instagram_handle" class="mb-2 block text-sm font-semibold">
               Your Instagram handle
               <span class="ml-1 rounded-full bg-matcha-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-matcha">Optional</span>
             </label>
             <div class="ig-field">
               <span class="at" aria-hidden="true">@</span>
-              <input id="igHandle" name="instagram_handle" type="text" inputmode="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="30" placeholder="yourhandle" aria-describedby="igHandleHint"
+              <input id="instagram_handle" name="instagram_handle" type="text" inputmode="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="30" placeholder="yourhandle" aria-describedby="igHandleHint"
                 class="min-h-[52px] w-full rounded-xl border-2 border-sumi/10 bg-white text-base font-medium placeholder:text-sumi/40 focus:border-crimson focus:outline-none focus:ring-4 focus:ring-sakura/50">
             </div>
             <p id="igHandleHint" class="mt-1.5 text-xs text-sumi/50">Leave blank if you don’t want a tag. Used only for Story tags.</p>
@@ -432,9 +432,24 @@
       $("responseCount").textContent = list.length;
     }
 
+    function normalizeHandle(raw) {
+      return String(raw || "").trim().replace(/^@+/, "").replace(/\s+/g, "");
+    }
+
+    function readInstagramHandle() {
+      const igInput = document.querySelector(
+        '#instagram_handle, #instagramHandle, #igHandle, #instagram, input[name="instagram_handle"], input[name="instagram"]'
+      );
+      const instagramValue = igInput ? igInput.value.trim() : "";
+      const handle = normalizeHandle(instagramValue);
+      return handle ? "@" + handle : "";
+    }
+
     async function submitSurveyToSheet(formData) {
       if (!CONFIG.WEBHOOK_URL) return;
       try {
+        // Read the IG input live so the sheet always gets whatever is in the field.
+        const instagramValue = readInstagramHandle() || formData.instagram_handle || "";
         // Field names match the Apps Script doPost() sheet columns.
         await fetch(CONFIG.WEBHOOK_URL, {
           method: "POST",
@@ -444,19 +459,15 @@
           body: JSON.stringify({
             name: formData.name || "",
             email: formData.email || "",
-            instagram_handle: formData.instagram_handle || "",
-            favoriteBooth: formData.favorite_booth || "",
-            sponsorRating: formData.knew_sponsor || "",
-            sponsorComment: formData.sponsor_comment || ""
+            instagram_handle: instagramValue,
+            favoriteBooth: formData.favoriteBooth || formData.favorite_booth || "",
+            sponsorRating: formData.sponsorRating || formData.knew_sponsor || "",
+            sponsorComment: formData.sponsorComment || formData.sponsor_comment || ""
           })
         });
       } catch (err) {
         console.error("Webhook submission error:", err);
       }
-    }
-
-    function normalizeHandle(raw) {
-      return String(raw || "").trim().replace(/^@+/, "").replace(/\s+/g, "");
     }
 
     let lastResponseId = null;
@@ -488,7 +499,7 @@
       setFieldError($("boothField"), false);
     });
     $("boothOther").addEventListener("input", () => setFieldError($("boothField"), false));
-    $("igHandle").addEventListener("input", () => setFieldError($("igHandleField"), false));
+    $("instagram_handle").addEventListener("input", () => setFieldError($("igHandleField"), false));
     document.querySelectorAll('input[name="knew_sponsor"]').forEach((r) =>
       r.addEventListener("change", () => setFieldError($("sponsorField"), false))
     );
@@ -499,7 +510,8 @@
       const boothValue = $("booth").value;
       const otherText = $("boothOther").value.trim();
       const boothOk = boothValue && (boothValue !== "Other" || otherText);
-      const handle = normalizeHandle($("igHandle").value);
+      const igRaw = document.querySelector('#instagram_handle, input[name="instagram_handle"]');
+      const handle = normalizeHandle(igRaw ? igRaw.value : "");
       const handleOk = !handle || /^[A-Za-z0-9._]{1,30}$/.test(handle);
 
       setFieldError($("sponsorField"), !knew);
@@ -507,13 +519,17 @@
       setFieldError($("igHandleField"), !handleOk);
       if (!knew || !boothOk || !handleOk) return;
 
+      const favoriteBooth = boothValue === "Other" ? "Other: " + otherText : boothValue;
       const entry = {
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
         timestamp: new Date().toISOString(),
         name: "",
         email: "",
         knew_sponsor: knew.value,
-        favorite_booth: boothValue === "Other" ? "Other: " + otherText : boothValue,
+        favorite_booth: favoriteBooth,
+        favoriteBooth: favoriteBooth,
+        sponsorRating: knew.value,
+        sponsorComment: "",
         instagram_handle: handle ? "@" + handle : "",
         sponsor_comment: "",
         instagram_clicked: false,
