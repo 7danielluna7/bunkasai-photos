@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#B3282D">
+  <meta name="description" content="Bunkasai Photo Booth — find your AI-sorted festival portraits.">
+  <title>Bunkasai Photo Booth · 文化祭フォトブース</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+JP:wght@600;900&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            washi: "#FAF7F2",
+            paper: "#FFFDF9",
+            sumi: "#1F2430",
+            crimson: { DEFAULT: "#B3282D", dark: "#8C1D22", soft: "#FBEAEA" },
+            sakura: { DEFAULT: "#F4C2CC", soft: "#FDF1F4", deep: "#D9738A" },
+            matcha: { DEFAULT: "#3F7A4C", soft: "#E8F2EA" }
+          },
+          fontFamily: {
+            sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+            jp: ["'Noto Serif JP'", "serif"]
+          },
+          boxShadow: {
+            card: "0 12px 32px -12px rgba(31, 36, 48, 0.18)",
+            cta: "0 8px 20px -6px rgba(179, 40, 45, 0.45)"
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    [hidden] { display: none !important; }
+    body { -webkit-tap-highlight-color: transparent; }
+
+    .seigaiha {
+      background-color: #FAF7F2;
+      background-image:
+        radial-gradient(circle at 100% 150%, #FAF7F2 24%, #F1EAE0 25%, #F1EAE0 28%, #FAF7F2 29%, #FAF7F2 36%, #F1EAE0 37%, #F1EAE0 40%, transparent 41%),
+        radial-gradient(circle at 0 150%, #FAF7F2 24%, #F1EAE0 25%, #F1EAE0 28%, #FAF7F2 29%, #FAF7F2 36%, #F1EAE0 37%, #F1EAE0 40%, transparent 41%),
+        radial-gradient(circle at 50% 100%, #F1EAE0 10%, #FAF7F2 11%, #FAF7F2 23%, #F1EAE0 24%, #F1EAE0 30%, #FAF7F2 31%, #FAF7F2 43%, #F1EAE0 44%, #F1EAE0 50%, transparent 51%);
+      background-size: 64px 32px;
+    }
+
+    .step { animation: stepIn 0.45s cubic-bezier(.2,.8,.2,1) both; }
+    .step.leaving { animation: stepOut 0.22s ease-in both; }
+    @keyframes stepIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    @keyframes stepOut { to { opacity: 0; transform: translateY(-10px); } }
+
+    .shake { animation: shake 0.35s ease; }
+    @keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+    .choice input:checked + span {
+      border-color: #B3282D;
+      background: #FBEAEA;
+      color: #8C1D22;
+    }
+    .choice input:focus-visible + span { outline: 3px solid #F4C2CC; outline-offset: 2px; }
+
+    select:invalid { color: #8A8F99; }
+    .select-arrow {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path fill='%23B3282D' d='M3.2 5.8 8 10.6l4.8-4.8 1.2 1.2L8 13 2 7z'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 16px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+
+<body class="seigaiha min-h-screen font-sans text-sumi antialiased">
+  <div class="mx-auto flex min-h-screen max-w-md flex-col px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(1.25rem+env(safe-area-inset-top))]">
+
+    <header class="text-center">
+      <div class="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-crimson shadow-sm ring-1 ring-crimson/10">
+        <span class="h-1.5 w-1.5 rounded-full bg-crimson"></span>
+        Japanese Cultural Festival
+      </div>
+      <h1 class="mt-3 text-[1.9rem] font-extrabold leading-tight tracking-tight">
+        Bunkasai <span class="text-crimson">Photo Booth</span>
+      </h1>
+      <p class="font-jp text-sm font-semibold tracking-[0.2em] text-sumi/50">文化祭フォトブース</p>
+    </header>
+
+    <nav class="mt-5" aria-label="Progress">
+      <ol class="grid grid-cols-3 gap-2" id="progress">
+        <li data-step="1">
+          <div class="h-1.5 rounded-full bg-sumi/10 transition-colors duration-500" data-bar></div>
+          <p class="mt-1.5 text-[11px] font-semibold text-sumi/40 transition-colors" data-label>1 · Survey</p>
+        </li>
+        <li data-step="2">
+          <div class="h-1.5 rounded-full bg-sumi/10 transition-colors duration-500" data-bar></div>
+          <p class="mt-1.5 text-[11px] font-semibold text-sumi/40 transition-colors" data-label>2 · Follow</p>
+        </li>
+        <li data-step="3">
+          <div class="h-1.5 rounded-full bg-sumi/10 transition-colors duration-500" data-bar></div>
+          <p class="mt-1.5 text-[11px] font-semibold text-sumi/40 transition-colors" data-label>3 · Photos</p>
+        </li>
+      </ol>
+    </nav>
+
+    <main class="mt-4 flex-1">
+
+      <!-- Step 1: Survey gate -->
+      <section id="step1" class="step rounded-3xl bg-paper p-5 shadow-card ring-1 ring-sumi/5" aria-labelledby="step1Title">
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-sakura-soft px-2.5 py-1 text-[11px] font-bold text-crimson-dark ring-1 ring-sakura">
+          <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2c1.2 2 1.2 4 0 6-1.2-2-1.2-4 0-6Zm7.6 5.5c-1 2.1-2.6 3.3-4.9 3.6 1-2.1 2.6-3.3 4.9-3.6ZM2.4 7.5c2.3.3 3.9 1.5 4.9 3.6-2.3-.3-3.9-1.5-4.9-3.6Zm12.3 9.1c-2.2-.6-3.6-2-4.1-4.3 2.2.6 3.6 2 4.1 4.3Zm-9.4 0c.5-2.3 1.9-3.7 4.1-4.3-.5 2.3-1.9 3.7-4.1 4.3Z"/></svg>
+          Sponsored by <span data-config="SPONSOR_NAME"></span>
+        </span>
+        <h2 id="step1Title" class="mt-3 text-2xl font-extrabold leading-snug">Find Your Bunkasai Portraits</h2>
+        <p class="mt-1 text-sm text-sumi/60">Two quick questions and your photos are unlocked.</p>
+
+        <form id="surveyForm" class="mt-5 space-y-5" novalidate>
+          <fieldset id="sponsorField">
+            <legend class="mb-2 text-sm font-semibold">
+              Did you know about <span data-config="SPONSOR_NAME"></span> before today? <span class="text-crimson">*</span>
+            </legend>
+            <div class="grid gap-2">
+              <label class="choice block cursor-pointer">
+                <input class="peer sr-only" type="radio" name="knew_sponsor" value="Yes, I already drink it" required>
+                <span class="flex min-h-[48px] items-center rounded-xl border-2 border-sumi/10 bg-white px-4 text-sm font-medium transition-colors">Yes, I already drink it 🍵</span>
+              </label>
+              <label class="choice block cursor-pointer">
+                <input class="peer sr-only" type="radio" name="knew_sponsor" value="Heard of it, never tried">
+                <span class="flex min-h-[48px] items-center rounded-xl border-2 border-sumi/10 bg-white px-4 text-sm font-medium transition-colors">Heard of it, never tried it</span>
+              </label>
+              <label class="choice block cursor-pointer">
+                <input class="peer sr-only" type="radio" name="knew_sponsor" value="No, first time today">
+                <span class="flex min-h-[48px] items-center rounded-xl border-2 border-sumi/10 bg-white px-4 text-sm font-medium transition-colors">No, first time hearing about it</span>
+              </label>
+            </div>
+            <p class="mt-1.5 hidden text-xs font-semibold text-crimson" data-error>Please pick one.</p>
+          </fieldset>
+
+          <div id="boothField">
+            <label for="booth" class="mb-2 block text-sm font-semibold">
+              Which Bunkasai booth or activity did you enjoy most today? <span class="text-crimson">*</span>
+            </label>
+            <select id="booth" name="favorite_booth" required class="min-h-[52px] w-full appearance-none rounded-xl border-2 border-sumi/10 bg-white select-arrow px-4 pr-10 text-base font-medium focus:border-crimson focus:outline-none focus:ring-4 focus:ring-sakura/50">
+              <option value="" selected disabled>Choose one…</option>
+              <option>Taiyaki</option>
+              <option>Yakisoba</option>
+              <option>Cotton Candy</option>
+              <option>Ito En</option>
+              <option>Kit Kat</option>
+              <option>Yo-yo Tsuri</option>
+              <option>Origami</option>
+              <option>Tanka</option>
+              <option>Competition</option>
+              <option>Fukuwarai</option>
+              <option>Radio Taiso</option>
+              <option>Hanamaru</option>
+              <option>Photo Booth</option>
+              <option>Doodle</option>
+              <option value="Other">Other…</option>
+            </select>
+            <input id="boothOther" type="text" maxlength="80" placeholder="Tell us which one" hidden
+              class="mt-2 min-h-[52px] w-full rounded-xl border-2 border-sumi/10 bg-white px-4 text-base font-medium placeholder:text-sumi/40 focus:border-crimson focus:outline-none focus:ring-4 focus:ring-sakura/50">
+            <p class="mt-1.5 hidden text-xs font-semibold text-crimson" data-error>Please choose a booth or activity.</p>
+          </div>
+
+          <button type="submit" class="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-2xl bg-crimson px-5 text-base font-bold text-white shadow-cta transition hover:bg-crimson-dark active:scale-[0.98]">
+            Continue to Unlock Photos
+            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10.3 4.3a1 1 0 0 1 1.4 0l5 5a1 1 0 0 1 0 1.4l-5 5a1 1 0 1 1-1.4-1.4L13.6 11H4a1 1 0 1 1 0-2h9.6l-3.3-3.3a1 1 0 0 1 0-1.4Z" clip-rule="evenodd"/></svg>
+          </button>
+        </form>
+      </section>
+
+      <!-- Step 2: Follow gate -->
+      <section id="step2" class="step rounded-3xl bg-paper p-5 shadow-card ring-1 ring-sumi/5" aria-labelledby="step2Title" hidden>
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-crimson-soft px-2.5 py-1 text-[11px] font-bold text-crimson-dark ring-1 ring-crimson/15">
+          Almost there · もうすぐ
+        </span>
+        <h2 id="step2Title" class="mt-3 text-2xl font-extrabold leading-snug" tabindex="-1">Support the club &amp; our sponsor</h2>
+        <p class="mt-1 text-sm text-sumi/60">Give us a follow to unlock your AI-sorted photo gallery. Thank you for keeping the booth free!</p>
+
+        <div class="mt-5 space-y-3">
+          <a id="igBtn" target="_blank" rel="noopener noreferrer"
+            class="group flex min-h-[64px] items-center gap-3 rounded-2xl border-2 border-sumi/10 bg-white p-3 pr-4 transition hover:border-crimson/40 active:scale-[0.99]">
+            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#F9CE34] via-[#EE2A7B] to-[#6228D7] text-white">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-[15px] font-bold">Follow <span data-config="INSTAGRAM_HANDLE"></span> on Instagram</span>
+              <span class="block text-xs text-sumi/55" data-status>Required to unlock</span>
+            </span>
+            <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-sumi/15 text-transparent transition" data-check>
+              <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L8 12.6l7.3-7.3a1 1 0 0 1 1.4 0Z" clip-rule="evenodd"/></svg>
+            </span>
+          </a>
+
+          <a id="sponsorBtn" target="_blank" rel="noopener noreferrer"
+            class="group flex min-h-[64px] items-center gap-3 rounded-2xl border-2 border-sumi/10 bg-white p-3 pr-4 transition hover:border-matcha/40 active:scale-[0.99]">
+            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-matcha-soft text-xl" aria-hidden="true">🍵</span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-[15px] font-bold">Check out our sponsor <span data-config="SPONSOR_NAME"></span></span>
+              <span class="block text-xs text-sumi/55" data-status><span data-config="SPONSOR_HANDLE"></span> · optional</span>
+            </span>
+            <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-sumi/15 text-transparent transition" data-check>
+              <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L8 12.6l7.3-7.3a1 1 0 0 1 1.4 0Z" clip-rule="evenodd"/></svg>
+            </span>
+          </a>
+        </div>
+
+        <button id="unlockBtn" type="button" disabled
+          class="mt-5 flex min-h-[56px] w-full items-center justify-center gap-2 rounded-2xl bg-crimson px-5 text-base font-bold text-white shadow-cta transition hover:bg-crimson-dark active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-sumi/15 disabled:text-sumi/45 disabled:shadow-none disabled:active:scale-100">
+          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 2a4 4 0 0 0-4 4v2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H8V6a2 2 0 1 1 4 0 1 1 0 1 0 2 0 4 4 0 0 0-4-4Z" clip-rule="evenodd"/></svg>
+          <span data-label>Unlock My Photo Gallery</span>
+        </button>
+        <p class="mt-2 text-center text-xs text-sumi/50" id="unlockHint">Tap the Instagram button above to enable this.</p>
+      </section>
+
+      <!-- Step 3: Gallery -->
+      <section id="step3" class="step space-y-4" aria-labelledby="step3Title" hidden>
+        <div class="rounded-3xl bg-paper p-5 shadow-card ring-1 ring-sumi/5">
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-matcha-soft px-2.5 py-1 text-[11px] font-bold text-matcha ring-1 ring-matcha/20">
+            <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L8 12.6l7.3-7.3a1 1 0 0 1 1.4 0Z" clip-rule="evenodd"/></svg>
+            Unlocked · ありがとう
+          </span>
+          <h2 id="step3Title" class="mt-3 text-2xl font-extrabold leading-snug" tabindex="-1">Your AI-sorted gallery</h2>
+          <p class="mt-2 text-sm leading-relaxed text-sumi/70">
+            Our AI photo booth groups portraits by face
+            (<code class="rounded bg-sumi/5 px-1 py-0.5 text-[13px] font-semibold text-crimson-dark">Person_001</code>,
+            <code class="rounded bg-sumi/5 px-1 py-0.5 text-[13px] font-semibold text-crimson-dark">Person_002</code>, etc.).
+            Browse the folders below to find your face folder and download your full-resolution portraits!
+          </p>
+
+          <a id="driveBtn" target="_blank" rel="noopener noreferrer"
+            class="mt-4 flex min-h-[56px] w-full items-center justify-center gap-2 rounded-2xl bg-crimson px-5 text-base font-bold text-white shadow-cta transition hover:bg-crimson-dark active:scale-[0.98]">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.3 3h7.4l6.3 11-3.7 6.5H5.7L2 14 8.3 3Zm1.2 2L4.3 14l2.5 4.4L12 9.5 9.5 5Zm3.6 6.5L8.6 18.5h9.8l2-3.5-7.3-3.5Z" opacity=".9"/></svg>
+            Open Full Gallery in Google Drive
+          </a>
+          <p class="mt-2 text-center text-xs text-sumi/50">Tip: open a photo in Drive, then tap ⋮ → Download to save it to your phone.</p>
+        </div>
+
+        <div class="overflow-hidden rounded-3xl bg-paper shadow-card ring-1 ring-sumi/5">
+          <div class="flex items-center justify-between gap-3 border-b border-sumi/5 px-4 py-3">
+            <div>
+              <p class="text-sm font-bold">Live folder view</p>
+              <p class="text-[11px] text-sumi/50" id="refreshedAt">New shots appear as they upload</p>
+            </div>
+            <button id="refreshBtn" type="button"
+              class="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border-2 border-sumi/10 bg-white px-3.5 text-xs font-bold text-crimson transition hover:border-crimson/40 active:scale-95">
+              <svg id="refreshIcon" class="h-4 w-4 transition-transform duration-700" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M15.3 4.7A7 7 0 0 0 3.1 9a1 1 0 1 0 2 .2 5 5 0 0 1 8.7-3.1H12a1 1 0 1 0 0 2h4a1 1 0 0 0 1-1V3a1 1 0 1 0-2 0v1.7ZM16 10a1 1 0 0 0-1.1.9 5 5 0 0 1-8.7 3.1H8a1 1 0 1 0 0-2H4a1 1 0 0 0-1 1v4a1 1 0 1 0 2 0v-1.7A7 7 0 0 0 16.9 11a1 1 0 0 0-.9-1Z" clip-rule="evenodd"/></svg>
+              Refresh Gallery
+            </button>
+          </div>
+          <iframe id="driveFrame" title="Bunkasai photo folders" loading="lazy"
+            class="block h-[70vh] min-h-[420px] w-full bg-white" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+      </section>
+    </main>
+
+    <footer class="mt-8 text-center text-xs text-sumi/45">
+      <p>
+        <span id="adminTap" class="cursor-default select-none font-jp font-semibold text-sumi/60">文化祭</span>
+        · Japanese Cultural Festival · Sponsored by <span data-config="SPONSOR_NAME"></span>
+      </p>
+      <p class="mt-1">
+        <a data-config-href="INSTAGRAM_URL" target="_blank" rel="noopener noreferrer" class="font-semibold text-crimson/80 hover:text-crimson" data-config="INSTAGRAM_HANDLE"></a>
+      </p>
+      <button id="resetBtn" type="button" class="mt-3 underline decoration-dotted underline-offset-4 hover:text-crimson">Reset Survey (Testing)</button>
+
+      <div id="adminPanel" class="mx-auto mt-4 max-w-xs rounded-2xl bg-white p-3 text-left text-sumi shadow-card ring-1 ring-sumi/10" hidden>
+        <p class="text-[11px] font-bold uppercase tracking-wider text-sumi/50">Admin</p>
+        <p class="mt-1 text-sm"><span id="responseCount">0</span> responses saved on this device</p>
+        <div class="mt-2 flex gap-2">
+          <button id="exportBtn" type="button" class="flex-1 rounded-xl bg-sumi px-3 py-2 text-xs font-bold text-white">Export CSV</button>
+          <button id="clearBtn" type="button" class="rounded-xl border border-sumi/15 px-3 py-2 text-xs font-bold text-crimson">Clear</button>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // =====================================================================
+    //  CONFIG — edit these values to point the page at your own links.
+    // =====================================================================
+    const CONFIG = {
+      // Google Drive folder ID (the part after /folders/ in the share link).
+      // Pasting the full folder URL here also works; the ID is extracted automatically.
+      // The folder must be shared as "Anyone with the link → Viewer" for the embed to load.
+      DRIVE_FOLDER_ID: "1yRwfraM20RtcquN-gKfVSlfLupEWXXnM",
+
+      // Link opened by the "Open Full Gallery in Google Drive" button.
+      DRIVE_SHARE_URL: "https://drive.google.com/drive/folders/1yRwfraM20RtcquN-gKfVSlfLupEWXXnM?usp=share_link",
+
+      // Club Instagram (Step 2 required follow).
+      INSTAGRAM_URL: "https://www.instagram.com/hanamaruclub_lehman/",
+      INSTAGRAM_HANDLE: "@hanamaruclub_lehman",
+
+      // Event sponsor (Step 2 optional button + badges).
+      SPONSOR_NAME: "Ito En",
+      SPONSOR_HANDLE: "@itoen",
+      SPONSOR_URL: "https://www.instagram.com/itoen/",
+
+      // Optional Make.com / Google Apps Script webhook. Each survey response is POSTed as a
+      // JSON string (Content-Type text/plain so no CORS preflight is needed).
+      // Apps Script: JSON.parse(e.postData.contents). Make.com: add a "Parse JSON" module.
+      // Leave blank to store responses only on this device (export via the hidden admin panel).
+      WEBHOOK_URL: "",
+
+      // Seconds the Unlock button waits after the Instagram button is tapped.
+      UNLOCK_DELAY_SECONDS: 3
+    };
+    // =====================================================================
+
+    // Hidden admin panel: tap "文化祭" in the footer 5 times, press Ctrl/Cmd + Shift + E,
+    // or open the page with ?admin in the URL.
+
+    const KEYS = {
+      unlocked: "bunkasai_unlocked",
+      surveyed: "bunkasai_surveyed",
+      responses: "bunkasai_responses"
+    };
+    const CSV_HEADERS = ["timestamp", "knew_sponsor", "favorite_booth", "instagram_clicked", "sponsor_clicked", "device", "user_agent"];
+
+    const $ = (id) => document.getElementById(id);
+    const store = {
+      get(key) { try { return localStorage.getItem(key); } catch (e) { return null; } },
+      set(key, value) { try { localStorage.setItem(key, value); } catch (e) {} },
+      remove(key) { try { localStorage.removeItem(key); } catch (e) {} }
+    };
+
+    function driveFolderId(value) {
+      const s = String(value || "").trim();
+      const match = s.match(/folders\/([\w-]+)/) || s.match(/[?&]id=([\w-]+)/);
+      return match ? match[1] : s;
+    }
+    const FOLDER_ID = driveFolderId(CONFIG.DRIVE_FOLDER_ID);
+    const EMBED_URL = "https://drive.google.com/embeddedfolderview?id=" + encodeURIComponent(FOLDER_ID) + "#grid";
+
+    function applyConfig() {
+      document.querySelectorAll("[data-config]").forEach((el) => { el.textContent = CONFIG[el.dataset.config] || ""; });
+      document.querySelectorAll("[data-config-href]").forEach((el) => { el.href = CONFIG[el.dataset.configHref] || "#"; });
+      $("igBtn").href = CONFIG.INSTAGRAM_URL;
+      $("sponsorBtn").href = CONFIG.SPONSOR_URL;
+      $("driveBtn").href = CONFIG.DRIVE_SHARE_URL;
+    }
+
+    // ---------- Step navigation ----------
+    let currentStep = 0;
+
+    function renderProgress(step) {
+      document.querySelectorAll("#progress li").forEach((li) => {
+        const n = Number(li.dataset.step);
+        const bar = li.querySelector("[data-bar]");
+        const label = li.querySelector("[data-label]");
+        bar.classList.toggle("bg-crimson", n <= step);
+        bar.classList.toggle("bg-sumi/10", n > step);
+        label.classList.toggle("text-crimson", n === step);
+        label.classList.toggle("text-sumi/70", n < step);
+        label.classList.toggle("text-sumi/40", n > step);
+        if (n === step) li.setAttribute("aria-current", "step"); else li.removeAttribute("aria-current");
+      });
+    }
+
+    function showStep(step, { animate = true } = {}) {
+      const next = $("step" + step);
+      const prev = currentStep ? $("step" + currentStep) : null;
+      const reveal = () => {
+        [1, 2, 3].forEach((n) => { if (n !== step) $("step" + n).hidden = true; });
+        next.classList.remove("leaving");
+        next.hidden = false;
+        currentStep = step;
+        renderProgress(step);
+        if (step === 3) loadGallery();
+        if (animate) {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          const heading = next.querySelector("h2");
+          if (heading) heading.focus({ preventScroll: true });
+        }
+      };
+      if (prev && prev !== next && animate) {
+        prev.classList.add("leaving");
+        setTimeout(() => { prev.classList.remove("leaving"); reveal(); }, 200);
+      } else {
+        reveal();
+      }
+    }
+
+    // ---------- Responses ----------
+    function deviceType() {
+      const ua = navigator.userAgent;
+      if (/iPad|Tablet/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1)) return "Tablet";
+      if (/iPhone|iPod|Android|Mobile/i.test(ua)) return "Mobile";
+      return "Desktop";
+    }
+
+    function getResponses() {
+      try {
+        const parsed = JSON.parse(store.get(KEYS.responses) || "[]");
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) { return []; }
+    }
+
+    function saveResponses(list) {
+      store.set(KEYS.responses, JSON.stringify(list));
+      $("responseCount").textContent = list.length;
+    }
+
+    function sendWebhook(payload) {
+      if (!CONFIG.WEBHOOK_URL) return;
+      fetch(CONFIG.WEBHOOK_URL, {
+        method: "POST",
+        mode: "no-cors",
+        keepalive: true,
+        headers: { "Content-Type": "text/plain;charset=UTF-8" },
+        body: JSON.stringify(payload)
+      }).catch(() => {});
+    }
+
+    let lastResponseId = null;
+
+    function updateLastResponse(patch) {
+      if (!lastResponseId) return;
+      const list = getResponses();
+      const row = list.find((r) => r.id === lastResponseId);
+      if (!row) return;
+      Object.assign(row, patch);
+      saveResponses(list);
+    }
+
+    // ---------- Step 1 ----------
+    function setFieldError(field, show) {
+      const err = field.querySelector("[data-error]");
+      err.classList.toggle("hidden", !show);
+      if (show) {
+        field.classList.remove("shake");
+        void field.offsetWidth;
+        field.classList.add("shake");
+      }
+    }
+
+    $("booth").addEventListener("change", () => {
+      const isOther = $("booth").value === "Other";
+      $("boothOther").hidden = !isOther;
+      if (isOther) $("boothOther").focus();
+      setFieldError($("boothField"), false);
+    });
+    $("boothOther").addEventListener("input", () => setFieldError($("boothField"), false));
+    document.querySelectorAll('input[name="knew_sponsor"]').forEach((r) =>
+      r.addEventListener("change", () => setFieldError($("sponsorField"), false))
+    );
+
+    $("surveyForm").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const knew = document.querySelector('input[name="knew_sponsor"]:checked');
+      const boothValue = $("booth").value;
+      const otherText = $("boothOther").value.trim();
+      const boothOk = boothValue && (boothValue !== "Other" || otherText);
+
+      setFieldError($("sponsorField"), !knew);
+      setFieldError($("boothField"), !boothOk);
+      if (!knew || !boothOk) return;
+
+      const entry = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+        timestamp: new Date().toISOString(),
+        knew_sponsor: knew.value,
+        favorite_booth: boothValue === "Other" ? "Other: " + otherText : boothValue,
+        instagram_clicked: false,
+        sponsor_clicked: false,
+        device: deviceType(),
+        user_agent: navigator.userAgent
+      };
+      lastResponseId = entry.id;
+      saveResponses(getResponses().concat(entry));
+      store.set(KEYS.surveyed, "true");
+      sendWebhook(entry);
+      showStep(2);
+    });
+
+    // ---------- Step 2 ----------
+    let unlockTimer = null;
+
+    function markClicked(btn, statusText) {
+      btn.classList.add("border-matcha", "bg-matcha-soft/50");
+      btn.classList.remove("border-sumi/10");
+      const check = btn.querySelector("[data-check]");
+      check.classList.add("bg-matcha", "border-matcha", "text-white");
+      check.classList.remove("border-sumi/15", "text-transparent");
+      btn.querySelector("[data-status]").textContent = statusText;
+    }
+
+    function startUnlockCountdown() {
+      if (unlockTimer || !$("unlockBtn").disabled) return;
+      const label = $("unlockBtn").querySelector("[data-label]");
+      let remaining = CONFIG.UNLOCK_DELAY_SECONDS;
+      const tick = () => {
+        if (remaining <= 0) {
+          clearInterval(unlockTimer);
+          unlockTimer = null;
+          $("unlockBtn").disabled = false;
+          label.textContent = "Unlock My Photo Gallery";
+          $("unlockHint").textContent = "Thanks for the follow! ありがとう 🌸";
+          return;
+        }
+        label.textContent = "Confirming follow… " + remaining;
+        remaining -= 1;
+      };
+      tick();
+      unlockTimer = setInterval(tick, 1000);
+    }
+
+    $("igBtn").addEventListener("click", () => {
+      markClicked($("igBtn"), "Opened — thanks for following!");
+      updateLastResponse({ instagram_clicked: true });
+      startUnlockCountdown();
+    });
+
+    $("sponsorBtn").addEventListener("click", () => {
+      markClicked($("sponsorBtn"), "Thanks for checking them out!");
+      updateLastResponse({ sponsor_clicked: true });
+    });
+
+    $("unlockBtn").addEventListener("click", () => {
+      if ($("unlockBtn").disabled) return;
+      store.set(KEYS.unlocked, "true");
+      showStep(3);
+    });
+
+    // ---------- Step 3 ----------
+    function stampRefreshed() {
+      const t = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      $("refreshedAt").textContent = "Last refreshed " + t;
+    }
+
+    function loadGallery() {
+      const frame = $("driveFrame");
+      if (!frame.src || frame.src === "about:blank") {
+        frame.src = EMBED_URL;
+        stampRefreshed();
+      }
+    }
+
+    let spin = 0;
+    $("refreshBtn").addEventListener("click", () => {
+      const frame = $("driveFrame");
+      spin += 360;
+      $("refreshIcon").style.transform = "rotate(" + spin + "deg)";
+      frame.src = "about:blank";
+      setTimeout(() => { frame.src = EMBED_URL; stampRefreshed(); }, 60);
+    });
+
+    // ---------- Reset ----------
+    $("resetBtn").addEventListener("click", () => {
+      store.remove(KEYS.unlocked);
+      store.remove(KEYS.surveyed);
+      clearInterval(unlockTimer);
+      unlockTimer = null;
+      lastResponseId = null;
+
+      $("surveyForm").reset();
+      $("boothOther").hidden = true;
+      setFieldError($("sponsorField"), false);
+      setFieldError($("boothField"), false);
+
+      [["igBtn", "Required to unlock"], ["sponsorBtn", CONFIG.SPONSOR_HANDLE + " · optional"]].forEach(([id, text]) => {
+        const btn = $(id);
+        btn.classList.remove("border-matcha", "bg-matcha-soft/50");
+        btn.classList.add("border-sumi/10");
+        const check = btn.querySelector("[data-check]");
+        check.classList.remove("bg-matcha", "border-matcha", "text-white");
+        check.classList.add("border-sumi/15", "text-transparent");
+        btn.querySelector("[data-status]").textContent = text;
+      });
+      $("unlockBtn").disabled = true;
+      $("unlockBtn").querySelector("[data-label]").textContent = "Unlock My Photo Gallery";
+      $("unlockHint").textContent = "Tap the Instagram button above to enable this.";
+      $("driveFrame").src = "about:blank";
+
+      showStep(1);
+    });
+
+    // ---------- Hidden admin ----------
+    function toggleAdmin(force) {
+      const panel = $("adminPanel");
+      panel.hidden = typeof force === "boolean" ? !force : !panel.hidden;
+      $("responseCount").textContent = getResponses().length;
+    }
+
+    let taps = [];
+    $("adminTap").addEventListener("click", () => {
+      const now = Date.now();
+      taps = taps.filter((t) => now - t < 3000).concat(now);
+      if (taps.length >= 5) { taps = []; toggleAdmin(); }
+    });
+    document.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "e") {
+        e.preventDefault();
+        toggleAdmin();
+      }
+    });
+
+    function csvCell(value) {
+      let s = String(value ?? "");
+      if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+
+    $("exportBtn").addEventListener("click", () => {
+      const rows = getResponses();
+      if (!rows.length) { alert("No responses saved on this device yet."); return; }
+      const csv = [CSV_HEADERS.join(",")]
+        .concat(rows.map((r) => CSV_HEADERS.map((h) => csvCell(r[h])).join(",")))
+        .join("\r\n");
+      const url = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "bunkasai_survey_" + new Date().toISOString().slice(0, 10) + ".csv";
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    $("clearBtn").addEventListener("click", () => {
+      if (confirm("Delete all survey responses stored on this device?")) saveResponses([]);
+    });
+
+    // ---------- Init ----------
+    applyConfig();
+    if (new URLSearchParams(location.search).has("admin")) toggleAdmin(true);
+    if (store.get(KEYS.unlocked) === "true") showStep(3, { animate: false });
+    else if (store.get(KEYS.surveyed) === "true") showStep(2, { animate: false });
+    else showStep(1, { animate: false });
+  </script>
+</body>
+</html>
